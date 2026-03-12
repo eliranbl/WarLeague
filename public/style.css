@@ -1,0 +1,218 @@
+body {
+    font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+    background-color: #121212;
+    color: #ffffff;
+    margin: 0;
+    padding: 20px;
+    text-align: center;
+}
+
+h1 {
+    color: #ff4757;
+    font-size: 2.5em;
+    text-shadow: 2px 2px 4px rgba(0,0,0,0.5);
+    margin-bottom: 5px;
+}
+
+h2 {
+    color: #ffa502;
+    font-size: 1.2em;
+    margin-top: 0;
+    margin-bottom: 30px;
+}
+
+.stats-card {
+    background-color: #2f3542;
+    padding: 15px;
+    border-radius: 8px;
+    display: inline-block;
+    margin: 10px;
+    font-size: 1.2em;
+    border: 1px solid #ff4757;
+    min-width: 200px;
+}
+
+.stats-number {
+    color: #ffa502;
+    font-weight: bold;
+    font-size: 1.5em;
+    display: block;
+    margin-top: 5px;
+}
+
+.controls-section {
+    background-color: #1e1e1e;
+    padding: 20px;
+    border-radius: 10px;
+    margin: 20px auto;
+    max-width: 1200px;
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: 20px;
+}
+
+.control-box {
+    background-color: #2f3542;
+    padding: 15px;
+    border-radius: 8px;
+    text-align: right;
+}
+
+.control-box h3 {
+    margin-top: 0;
+    color: #00d2d3;
+    text-align: center;
+    border-bottom: 1px solid #555;
+    padding-bottom: 10px;
+}
+
+input[type="text"], select {
+    padding: 10px;
+    font-size: 1em;
+    border-radius: 5px;
+    border: none;
+    outline: none;
+    margin-top: 10px;
+    width: 100%;
+    box-sizing: border-box;
+}
+
+button {
+    background-color: #ff4757;
+    color: white;
+    border: none;
+    padding: 10px 15px;
+    font-size: 1em;
+    border-radius: 5px;
+    cursor: pointer;
+    margin-top: 10px;
+    font-weight: bold;
+    width: 100%;
+    transition: 0.2s;
+}
+
+button:hover { background-color: #ff6b81; }
+.btn-secondary { background-color: #57606f; }
+.btn-secondary:hover { background-color: #747d8c; }
+.btn-success { background-color: #2ed573; }
+.btn-success:hover { background-color: #7bed9f; }
+
+.tags-container {
+    margin-top: 15px;
+    display: flex;
+    flex-wrap: wrap;
+    gap: 8px;
+    min-height: 40px;
+    background: #1e1e1e;
+    padding: 10px;
+    border-radius: 5px;
+}
+
+.tag {
+    background-color: #ffa502;
+    color: #000;
+    padding: 5px 10px;
+    border-radius: 15px;
+    font-weight: bold;
+    font-size: 0.9em;
+    display: flex;
+    align-items: center;
+    gap: 5px;
+}
+
+.tag span {
+    cursor: pointer;
+    color: #c23616;
+    font-weight: bold;
+}
+
+table {
+    width: 100%;
+    border-collapse: collapse;
+    background-color: #1e1e1e;
+    margin-top: 20px;
+    border-radius: 8px;
+    overflow: hidden;
+}
+
+th, td {
+    padding: 12px;
+    border-bottom: 1px solid #333;
+    text-align: center;
+}
+
+th {
+    background-color: #ff4757;
+    color: white;
+    font-size: 1.1em;
+}
+
+tr:hover { background-color: #2f3542; }
+.rank-1 { background-color: rgba(255, 215, 0, 0.15); font-weight: bold; }
+.rank-2 { background-color: rgba(192, 192, 192, 0.15); font-weight: bold; }
+.rank-3 { background-color: rgba(205, 127, 50, 0.15); font-weight: bold; }
+
+.pagination {
+    margin: 20px 0;
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 15px;
+}
+
+.pagination span {
+    font-size: 1.2em;
+    font-weight: bold;
+}
+
+.pagination button {
+    width: auto;
+    margin: 0;
+}
+
+.pagination button:disabled {
+    background-color: #555;
+    cursor: not-allowed;
+}
+
+/* Autocomplete */
+.autocomplete-wrapper {
+    position: relative;
+    width: 100%;
+}
+
+.suggestions-box {
+    display: none;
+    position: absolute;
+    top: 100%;
+    right: 0;
+    left: 0;
+    background: #2f3542;
+    border: 1px solid #555;
+    border-radius: 0 0 5px 5px;
+    max-height: 250px;
+    overflow-y: auto;
+    z-index: 100;
+    text-align: right;
+}
+
+.suggestion-item {
+    padding: 10px 15px;
+    cursor: pointer;
+    font-size: 0.95em;
+    border-bottom: 1px solid #3d3d50;
+}
+
+.suggestion-item:hover {
+    background-color: #ff4757;
+    color: white;
+}
+
+.suggestion-item span {
+    color: #aaa;
+    font-size: 0.85em;
+}
+
+.suggestion-item:hover span {
+    color: #ffd;
+}

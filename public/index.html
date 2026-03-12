@@ -1,0 +1,314 @@
+<!DOCTYPE html>
+<html lang="he" dir="rtl">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>ליגת האזעקות של ישראל - מורחב</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+
+    <h1>🏆 ליגת האזעקות של ישראל 🏆</h1>
+    <h2>עונת שאגת הארי 🦁</h2>
+
+    <div id="loadingMsg" style="color:#00d2d3; font-size:1.5em;">טוען נתונים מהשרת... ⏳</div>
+
+    <div id="mainContent" style="display: none;">
+
+        <div class="controls-section">
+            <div class="control-box">
+                <h3>🔍 חיפוש קבוצה בטבלה</h3>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="searchInput" placeholder="הקלד שם יישוב..." autocomplete="off">
+                    <div id="searchSuggestions" class="suggestions-box"></div>
+                </div>
+            </div>
+
+            <div class="control-box" style="grid-column: span 2;">
+                <h3>🛡️ הרכבת ליגה פרטית (מחוז / עוטף)</h3>
+                <div style="display: flex; gap: 10px;">
+                    <div class="autocomplete-wrapper" style="flex: 1;">
+                        <input type="text" id="privateCityInput" placeholder="הקלד שם יישוב להוספה..." autocomplete="off">
+                        <div id="privateSuggestions" class="suggestions-box"></div>
+                    </div>
+                    <button style="width: 30%; margin-top: 10px;" onclick="addCityToPrivateLeague()">הוסף פנימה</button>
+                </div>
+
+                <div id="privateLeagueTags" class="tags-container">
+                    <span style="color: #777; font-size: 0.9em; padding-top: 5px;">(היישובים שתבחר יופיעו כאן)</span>
+                </div>
+
+                <div style="display: flex; gap: 10px;">
+                    <button class="btn-success" onclick="togglePrivateLeagueMode()">חשב טבלה לליגה הפרטית בלבד!</button>
+                    <button class="btn-secondary" onclick="clearPrivateLeague()">נקה ליגה פרטית וחזור לליגה הכללית</button>
+                </div>
+            </div>
+        </div>
+
+        <div id="statsContainer">
+            <div class="stats-card">שערים העונה (אזעקות אמת)<span class="stats-number" id="totalAlarmsStat">0</span></div>
+            <div class="stats-card">היום העמוס בעונה<span class="stats-number" id="busiestDayStat">-</span></div>
+            <div class="stats-card">קבוצות פעילות בטבלה<span class="stats-number" id="totalCitiesStat">0</span></div>
+        </div>
+
+        <table id="leagueTable">
+            <thead>
+                <tr>
+                    <th>מקום</th>
+                    <th>קבוצה (יישוב)</th>
+                    <th>התרעות (1 נק')</th>
+                    <th>רקטות (2 נק')</th>
+                    <th>כטב"מים (3 נק')</th>
+                    <th>סה"כ אזעקות</th>
+                    <th>נקודות</th>
+                </tr>
+            </thead>
+            <tbody id="tableBody"></tbody>
+        </table>
+
+        <div class="pagination">
+            <button id="nextBtn" onclick="changePage(1)">הבא ⬅️</button>
+            <span id="pageIndicator">עמוד 1 מתוך ?</span>
+            <button id="prevBtn" onclick="changePage(-1)">➡️ קודם</button>
+        </div>
+    </div>
+
+    <script>
+        let tableDisplayArray = [];
+        let privateLeagueCities = new Set(JSON.parse(localStorage.getItem('privateLeagueCities') || '[]'));
+        let isPrivateLeagueMode = privateLeagueCities.size > 0;
+        let currentPage = 1;
+        const itemsPerPage = 20;
+        let selectedPrivateCity = ''; // City selected from autocomplete
+
+        document.addEventListener("DOMContentLoaded", async () => {
+            try {
+                document.getElementById('loadingMsg').style.display = 'none';
+                document.getElementById('mainContent').style.display = 'block';
+
+                setupAutocomplete('searchInput', 'searchSuggestions', (label) => {
+                    document.getElementById('searchInput').value = label;
+                    fetchLeague();
+                });
+
+                setupAutocomplete('privateCityInput', 'privateSuggestions', (label) => {
+                    document.getElementById('privateCityInput').value = label;
+                    selectedPrivateCity = label;
+                });
+
+                // Restore private league from localStorage
+                if (privateLeagueCities.size > 0) {
+                    renderPrivateLeagueTags();
+                }
+
+                await fetchLeague();
+            } catch {
+                document.getElementById('loadingMsg').innerText = 'שגיאה בהתחברות לשרת ❌';
+            }
+        });
+
+        // --- Autocomplete ---
+        function setupAutocomplete(inputId, suggestionsId, onSelect) {
+            const input = document.getElementById(inputId);
+            const suggestionsBox = document.getElementById(suggestionsId);
+            let debounceTimer = null;
+
+            input.addEventListener('input', function() {
+                clearTimeout(debounceTimer);
+                const q = this.value.trim();
+
+                if (q.length === 0) {
+                    suggestionsBox.style.display = 'none';
+                    suggestionsBox.innerHTML = '';
+                    // If search field - refresh table without filter
+                    if (inputId === 'searchInput') {
+                        fetchLeague();
+                    }
+                    return;
+                }
+
+                debounceTimer = setTimeout(async () => {
+                    try {
+                        const res = await fetch(`/api/cities?q=${encodeURIComponent(q)}&limit=15`);
+                        const cities = await res.json();
+
+                        suggestionsBox.innerHTML = '';
+                        if (!Array.isArray(cities) || cities.length === 0) {
+                            suggestionsBox.style.display = 'none';
+                            return;
+                        }
+
+                        cities.forEach(city => {
+                            if (!city || !city.label) return;
+                            const div = document.createElement('div');
+                            div.className = 'suggestion-item';
+                            div.innerHTML = city.mixname || city.label;
+                            div.addEventListener('click', () => {
+                                onSelect(city.label);
+                                suggestionsBox.style.display = 'none';
+                            });
+                            suggestionsBox.appendChild(div);
+                        });
+                        suggestionsBox.style.display = 'block';
+                    } catch {
+                        suggestionsBox.style.display = 'none';
+                    }
+                }, 200);
+            });
+
+            // Close suggestions on outside click
+            document.addEventListener('click', (e) => {
+                if (!input.contains(e.target) && !suggestionsBox.contains(e.target)) {
+                    suggestionsBox.style.display = 'none';
+                }
+            });
+        }
+
+        // --- Search via API ---
+        let searchTimeout = null;
+        document.getElementById('searchInput').addEventListener('input', function() {
+            clearTimeout(searchTimeout);
+            searchTimeout = setTimeout(() => fetchLeague(), 300);
+        });
+
+        // Fetch league data from server
+        let currentAbortController = null;
+        async function fetchLeague() {
+            // Cancel previous request if exists
+            if (currentAbortController) {
+                currentAbortController.abort();
+            }
+            currentAbortController = new AbortController();
+            const signal = currentAbortController.signal;
+
+            try {
+                const search = document.getElementById('searchInput').value.trim();
+
+                // Show loading state
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="color:#00d2d3; padding:20px;">טוען נתונים... ⏳</td></tr>';
+
+                let url = `/api/league?_t=${Date.now()}`;
+
+                if (isPrivateLeagueMode && privateLeagueCities.size > 0) {
+                    url += `&cities=${encodeURIComponent(Array.from(privateLeagueCities).join(','))}`;
+                }
+
+                if (search) {
+                    url += `&search=${encodeURIComponent(search)}`;
+                }
+
+                console.log('fetchLeague:', url);
+                const res = await fetch(url, { signal });
+                const data = await res.json();
+                console.log('Result:', data.stats.totalCities, 'cities,', data.stats.totalRealAlarms, 'alarms');
+
+                document.getElementById('totalAlarmsStat').innerText = data.stats.totalRealAlarms;
+                document.getElementById('busiestDayStat').innerText = `${data.stats.busiestDay} (${data.stats.maxAlarmsInDay})`;
+                document.getElementById('totalCitiesStat').innerText = data.stats.totalCities;
+
+                tableDisplayArray = data.league || [];
+                currentPage = 1;
+                renderTable();
+            } catch (err) {
+                if (err.name === 'AbortError') return; // Request cancelled - ignore
+                console.error('Error fetching league:', err);
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="color:#ff4757; padding:20px;">שגיאה בטעינת נתונים ❌</td></tr>';
+            }
+        }
+
+        // --- Private league management ---
+        function savePrivateLeague() {
+            localStorage.setItem('privateLeagueCities', JSON.stringify(Array.from(privateLeagueCities)));
+        }
+
+        function addCityToPrivateLeague() {
+            const input = document.getElementById('privateCityInput');
+            const city = selectedPrivateCity || input.value.trim();
+            if (!city || privateLeagueCities.has(city)) return;
+            privateLeagueCities.add(city);
+            input.value = '';
+            selectedPrivateCity = '';
+            savePrivateLeague();
+            renderPrivateLeagueTags();
+        }
+
+        function removeCityFromLeague(city) {
+            privateLeagueCities.delete(city);
+            savePrivateLeague();
+            renderPrivateLeagueTags();
+        }
+
+        function renderPrivateLeagueTags() {
+            const container = document.getElementById('privateLeagueTags');
+            if (privateLeagueCities.size === 0) {
+                container.innerHTML = '<span style="color: #777; font-size: 0.9em; padding-top: 5px;">(היישובים שתבחר יופיעו כאן)</span>';
+                return;
+            }
+            container.innerHTML = '';
+            privateLeagueCities.forEach(city => {
+                const tag = document.createElement('div');
+                tag.className = 'tag';
+                tag.innerHTML = `${city} <span onclick="removeCityFromLeague('${city}')">✖</span>`;
+                container.appendChild(tag);
+            });
+        }
+
+        function togglePrivateLeagueMode() {
+            if (privateLeagueCities.size === 0) {
+                alert("לא בחרת אף קבוצה לליגה הפרטית!");
+                return;
+            }
+            isPrivateLeagueMode = true;
+            fetchLeague();
+        }
+
+        function clearPrivateLeague() {
+            privateLeagueCities.clear();
+            isPrivateLeagueMode = false;
+            savePrivateLeague();
+            renderPrivateLeagueTags();
+            fetchLeague();
+        }
+
+        // --- Table rendering ---
+        function renderTable() {
+            const totalPages = Math.ceil(tableDisplayArray.length / itemsPerPage) || 1;
+            const start = (currentPage - 1) * itemsPerPage;
+            const end = start + itemsPerPage;
+            const currentData = tableDisplayArray.slice(start, end);
+
+            const tbody = document.getElementById('tableBody');
+            tbody.innerHTML = '';
+
+            currentData.forEach(team => {
+                const tr = document.createElement('tr');
+                if (team.rank === 1) tr.className = 'rank-1';
+                else if (team.rank === 2) tr.className = 'rank-2';
+                else if (team.rank === 3) tr.className = 'rank-3';
+
+                let medal = team.rank === 1 ? '🥇 ' : team.rank === 2 ? '🥈 ' : team.rank === 3 ? '🥉 ' : '';
+
+                tr.innerHTML = `
+                    <td>${medal}${team.rank}</td>
+                    <td><strong>${team.mixname || team.name}</strong></td>
+                    <td>${team.warnings}</td>
+                    <td>${team.rockets}</td>
+                    <td>${team.drones}</td>
+                    <td>${team.total}</td>
+                    <td style="color: #00d2d3; font-weight: bold; font-size: 1.1em;">${team.points}</td>
+                `;
+                tbody.appendChild(tr);
+            });
+
+            document.getElementById('pageIndicator').innerText = `עמוד ${currentPage} מתוך ${totalPages}`;
+            document.getElementById('prevBtn').disabled = currentPage === 1;
+            document.getElementById('nextBtn').disabled = currentPage === totalPages;
+        }
+
+        function changePage(direction) {
+            currentPage += direction;
+            renderTable();
+        }
+    </script>
+</body>
+</html>
