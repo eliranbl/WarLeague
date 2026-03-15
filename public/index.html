@@ -1,17 +1,38 @@
 <!DOCTYPE html>
 <html lang="he" dir="rtl">
+
 <head>
     <meta charset="UTF-8">
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>ליגת האזעקות של ישראל - מורחב</title>
     <link rel="stylesheet" href="style.css">
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-54K35HQ5');</script>
+    <!-- End Google Tag Manager -->
 </head>
-<body>
 
+<body>
+    <!-- Google Tag Manager -->
+    <script>(function (w, d, s, l, i) {
+            w[l] = w[l] || []; w[l].push({
+                'gtm.start':
+                    new Date().getTime(), event: 'gtm.js'
+            }); var f = d.getElementsByTagName(s)[0],
+                j = d.createElement(s), dl = l != 'dataLayer' ? '&l=' + l : ''; j.async = true; j.src =
+                    'https://www.googletagmanager.com/gtm.js?id=' + i + dl; f.parentNode.insertBefore(j, f);
+        })(window, document, 'script', 'dataLayer', 'GTM-54K35HQ5');</script>
+    <!-- End Google Tag Manager -->
     <h1>🏆 ליגת האזעקות של ישראל 🏆</h1>
     <h2>עונת שאגת הארי 🦁</h2>
 
-    <div id="loadingMsg" style="color:#00d2d3; font-size:1.5em;">טוען נתונים מהשרת... ⏳</div>
+    <div id="loadingMsg" style="color:#22d3ee; font-size:1.5em;">טוען נתונים מהשרת... ⏳</div>
 
     <div id="mainContent" style="display: none;">
 
@@ -26,12 +47,9 @@
 
             <div class="control-box" style="grid-column: span 2;">
                 <h3>🛡️ הרכבת ליגה פרטית (מחוז / עוטף)</h3>
-                <div style="display: flex; gap: 10px;">
-                    <div class="autocomplete-wrapper" style="flex: 1;">
-                        <input type="text" id="privateCityInput" placeholder="הקלד שם יישוב להוספה..." autocomplete="off">
-                        <div id="privateSuggestions" class="suggestions-box"></div>
-                    </div>
-                    <button style="width: 30%; margin-top: 10px;" onclick="addCityToPrivateLeague()">הוסף פנימה</button>
+                <div class="autocomplete-wrapper">
+                    <input type="text" id="privateCityInput" placeholder="הקלד שם יישוב להוספה..." autocomplete="off">
+                    <div id="privateSuggestions" class="suggestions-box"></div>
                 </div>
 
                 <div id="privateLeagueTags" class="tags-container">
@@ -40,13 +58,16 @@
 
                 <div style="display: flex; gap: 10px;">
                     <button class="btn-success" onclick="togglePrivateLeagueMode()">חשב טבלה לליגה הפרטית בלבד!</button>
-                    <button class="btn-secondary" onclick="clearPrivateLeague()">נקה ליגה פרטית וחזור לליגה הכללית</button>
+                    <button class="btn-secondary" onclick="clearPrivateLeague()">נקה ליגה פרטית וחזור לליגה
+                        הכללית</button>
                 </div>
             </div>
         </div>
 
         <div id="statsContainer">
-            <div class="stats-card">שערים העונה (אזעקות אמת)<span class="stats-number" id="totalAlarmsStat">0</span></div>
+            <div class="stats-card" id="generalLeagueNotice">בליגה כללית הנתונים מעודכנים ל24 שעות אחרונות</div>
+            <div class="stats-card">שערים העונה (אזעקות אמת)<span class="stats-number" id="totalAlarmsStat">0</span>
+            </div>
             <div class="stats-card">היום העמוס בעונה<span class="stats-number" id="busiestDayStat">-</span></div>
             <div class="stats-card">קבוצות פעילות בטבלה<span class="stats-number" id="totalCitiesStat">0</span></div>
         </div>
@@ -56,10 +77,10 @@
                 <tr>
                     <th>מקום</th>
                     <th>קבוצה (יישוב)</th>
-                    <th>התרעות (1 נק')</th>
+                    <th>התרעות מקדימות(1 נק')</th>
                     <th>רקטות (2 נק')</th>
                     <th>כטב"מים (3 נק')</th>
-                    <th>סה"כ אזעקות</th>
+                    <th>סה"כ התראות</th>
                     <th>נקודות</th>
                 </tr>
             </thead>
@@ -79,7 +100,6 @@
         let isPrivateLeagueMode = privateLeagueCities.size > 0;
         let currentPage = 1;
         const itemsPerPage = 20;
-        let selectedPrivateCity = ''; // City selected from autocomplete
 
         document.addEventListener("DOMContentLoaded", async () => {
             try {
@@ -92,8 +112,12 @@
                 });
 
                 setupAutocomplete('privateCityInput', 'privateSuggestions', (label) => {
-                    document.getElementById('privateCityInput').value = label;
-                    selectedPrivateCity = label;
+                    if (!privateLeagueCities.has(label)) {
+                        privateLeagueCities.add(label);
+                        savePrivateLeague();
+                        renderPrivateLeagueTags();
+                    }
+                    document.getElementById('privateCityInput').value = '';
                 });
 
                 // Restore private league from localStorage
@@ -113,7 +137,7 @@
             const suggestionsBox = document.getElementById(suggestionsId);
             let debounceTimer = null;
 
-            input.addEventListener('input', function() {
+            input.addEventListener('input', function () {
                 clearTimeout(debounceTimer);
                 const q = this.value.trim();
 
@@ -166,7 +190,7 @@
 
         // --- Search via API ---
         let searchTimeout = null;
-        document.getElementById('searchInput').addEventListener('input', function() {
+        document.getElementById('searchInput').addEventListener('input', function () {
             clearTimeout(searchTimeout);
             searchTimeout = setTimeout(() => fetchLeague(), 300);
         });
@@ -185,7 +209,7 @@
                 const search = document.getElementById('searchInput').value.trim();
 
                 // Show loading state
-                document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="color:#00d2d3; padding:20px;">טוען נתונים... ⏳</td></tr>';
+                document.getElementById('tableBody').innerHTML = '<tr><td colspan="7" style="color:#22d3ee; padding:20px;">טוען נתונים... ⏳</td></tr>';
 
                 let url = `/api/league?_t=${Date.now()}`;
 
@@ -205,6 +229,7 @@
                 document.getElementById('totalAlarmsStat').innerText = data.stats.totalRealAlarms;
                 document.getElementById('busiestDayStat').innerText = `${data.stats.busiestDay} (${data.stats.maxAlarmsInDay})`;
                 document.getElementById('totalCitiesStat').innerText = data.stats.totalCities;
+                document.getElementById('generalLeagueNotice').style.display = isPrivateLeagueMode ? 'none' : '';
 
                 tableDisplayArray = data.league || [];
                 currentPage = 1;
@@ -219,17 +244,6 @@
         // --- Private league management ---
         function savePrivateLeague() {
             localStorage.setItem('privateLeagueCities', JSON.stringify(Array.from(privateLeagueCities)));
-        }
-
-        function addCityToPrivateLeague() {
-            const input = document.getElementById('privateCityInput');
-            const city = selectedPrivateCity || input.value.trim();
-            if (!city || privateLeagueCities.has(city)) return;
-            privateLeagueCities.add(city);
-            input.value = '';
-            selectedPrivateCity = '';
-            savePrivateLeague();
-            renderPrivateLeagueTags();
         }
 
         function removeCityFromLeague(city) {
@@ -289,13 +303,13 @@
                 let medal = team.rank === 1 ? '🥇 ' : team.rank === 2 ? '🥈 ' : team.rank === 3 ? '🥉 ' : '';
 
                 tr.innerHTML = `
-                    <td>${medal}${team.rank}</td>
-                    <td><strong>${team.mixname || team.name}</strong></td>
-                    <td>${team.warnings}</td>
-                    <td>${team.rockets}</td>
-                    <td>${team.drones}</td>
-                    <td>${team.total}</td>
-                    <td style="color: #00d2d3; font-weight: bold; font-size: 1.1em;">${team.points}</td>
+                    <td data-label="מקום">${medal}${team.rank}</td>
+                    <td data-label="קבוצה"><strong>${team.mixname || team.name}</strong></td>
+                    <td data-label="התרעות מקדימות">${team.warnings}</td>
+                    <td data-label="רקטות">${team.rockets}</td>
+                    <td data-label="כטב&quot;מים">${team.drones}</td>
+                    <td data-label="סה&quot;כ התראות">${team.total}</td>
+                    <td data-label="נקודות" style="color: #22d3ee; font-weight: bold; font-size: 1.1em;">${team.points}</td>
                 `;
                 tbody.appendChild(tr);
             });
@@ -311,4 +325,5 @@
         }
     </script>
 </body>
+
 </html>
